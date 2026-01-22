@@ -38,9 +38,9 @@ ceci est un test
 <details>
   <summary>Indice</summary>
 
-    ```C
-    int main(void){
-        // pointeur line
+  ```C
+  int main(void){
+        //pointeur line
 
         while (1)
         {
@@ -55,7 +55,7 @@ ceci est un test
             printf("%s", line);
         }
     }
-    ```
+  ```
 </details>
 
 
