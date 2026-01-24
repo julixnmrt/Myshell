@@ -56,3 +56,7 @@ dkms.conf
 
 # config
 .vscode
+
+myshell
+
+build/
