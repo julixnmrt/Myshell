@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build shell
+      run: |
+        make
+
+    - name: Run tests
+      working-directory: tests
+      run: |
+        chmod +x test_pipeline.sh
+        ./test_pipeline.sh

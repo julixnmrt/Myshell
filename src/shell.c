@@ -15,27 +15,27 @@ int main(void)
     while (1)
     {
         char cwd[1024];
+        int interactive = isatty(STDIN_FILENO); // vrai si mode interactif
 
-        if (getcwd(cwd, sizeof(cwd)) != NULL) {
-            char *home = getenv("HOME");
-            if (home && strncmp(cwd, home, strlen(home)) == 0) {
-                // Affiche "~" suivi du reste du chemin
-                printf("\033[32mMyshell:\033[0m\033[34m~%s\033[0m$\033[0m ",
-                    cwd + strlen(home));
+        if (interactive) {
+            if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                char *home = getenv("HOME");
+                if (home && strncmp(cwd, home, strlen(home)) == 0) {
+                    // Affiche "~" suivi du reste du chemin
+                    printf("\033[32mMyshell:\033[0m\033[34m~%s\033[0m$\033[0m ",
+                        cwd + strlen(home));
+                } else {
+                    // Affiche le chemin complet
+                    printf("\033[32mMyshell:\033[0m\033[34m%s\033[0m$\033[0m ",
+                        cwd);
+                }
             } else {
-                // Affiche le chemin complet
-                printf("\033[32mMyshell:\033[0m\033[34m%s\033[0m$\033[0m ",
-                    cwd);
+                perror("getcwd");
+                printf("\033[32mMyshell@\033[0m\033[32m$\033[0m ");
             }
-        } else {
-            perror("getcwd");
-            printf("\033[32mMyshell@\033[0m\033[32m$\033[0m ");
+            fflush(stdout);
         }
-
-        fflush(stdout);
-
-        fflush(stdout);
-
+        
         if (getline(&line, &len, stdin) == -1)
         {
             printf("\n");
