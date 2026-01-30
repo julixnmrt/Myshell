@@ -6,16 +6,27 @@
 #include <sys/wait.h>
 #include "utils.h"
 #include <unistd.h>
+#include <signal.h>
+
+volatile sig_atomic_t got_sigint = 0;
+
+void sigint_handler(int sig) {
+    (void)sig; 
+    got_sigint = 1;
+    write(STDOUT_FILENO, "\n", 1); // saute une ligne
+}
 
 int main(void)
 {
+    signal(SIGINT, sigint_handler);
+
     char *line = NULL;
     size_t len = 0;
 
     while (1)
     {
         char cwd[1024];
-        int interactive = isatty(STDIN_FILENO); // vrai si mode interactif
+        int interactive = isatty(STDIN_FILENO); // vrai si mode interactif (pour tests)
 
         if (interactive) {
             if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -36,11 +47,16 @@ int main(void)
             fflush(stdout);
         }
         
-        if (getline(&line, &len, stdin) == -1)
-        {
+        ssize_t r = getline(&line, &len, stdin);
+        if (r == -1) {
+            if (got_sigint) {
+                got_sigint = 0;
+                continue; // ← retour au prompt
+            }
             printf("\n");
             break;
         }
+
 
         pipeline_struct *pipeline = parse_pipeline(line);
         int n_pipes = pipeline->n_cmds - 1;
@@ -53,7 +69,9 @@ int main(void)
         }
 
         if(n_pipes == 0){
-            if (strcmp(pipeline->cmds[0]->args[0], "cd") == 0) {
+            char *commande =pipeline->cmds[0]->args[0];
+
+            if (strcmp(commande, "cd") == 0) {
                 char *path;
 
                 if (pipeline->cmds[0]->args[1] != NULL) {
@@ -70,6 +88,10 @@ int main(void)
                     perror("cd");
                 }
             }
+
+            else if(strcmp(commande, "exit") == 0|| strcmp(commande, "quit") == 0){
+                break;
+            }
             else{
                 pid_t p = fork();
                 if(p<0){
@@ -77,7 +99,10 @@ int main(void)
                     exit(1);
                 }
                 else if(p==0){
-                    execvp(pipeline->cmds[0]->args[0], pipeline->cmds[0]->args);
+                    signal(SIGINT, SIG_DFL);
+                    execvp(commande, pipeline->cmds[0]->args);
+                    perror("execvp");
+                    exit(1);
                 }
                 else{
                     wait(NULL);
@@ -119,6 +144,7 @@ int main(void)
                         close(pipes[j][1]);
                     }
 
+                    signal(SIGINT, SIG_DFL);
                     execvp(pipeline->cmds[i]->args[0], pipeline->cmds[i]->args);
 
                     perror("execvp");
